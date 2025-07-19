@@ -1,906 +1,172 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SteamKeyDrop</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-        body {
-            background-color: #000000;
-            color: #ffffff;
-            line-height: 1.6;
-            overflow-x: hidden;
-            user-select: none;
-            cursor: default;
-        }
-
-        .container {
-            width: 90%;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 20px;
-        }
-
-        header {
-            background-color: #1a1a1a;
-            color: #fff;
-            padding: 1.5rem 0;
-            position: fixed;
-            width: 100%;
-            top: 0;
-            z-index: 1000;
-            box-shadow: 0 2px 15px rgba(0, 255, 255, 0.6);
-            border-bottom: 1px solid rgba(0, 255, 255, 0.3);
-        }
-
-        header .container {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        header h1 {
-            font-size: 1.8rem;
-            font-weight: 700;
-            letter-spacing: 1px;
-            text-shadow: 0 0 5px rgba(0, 255, 255, 0.5);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            position: relative;
-        }
-
-        header h1::after {
-            content: none;
-        }
-
-        header h1 i {
-            font-size: 2rem;
-            color: #ffff00;
-            text-shadow: 0 0 8px rgba(255, 255, 0, 0.7);
-            animation: pulseIcon 3s infinite;
-        }
-
-        @keyframes pulseIcon {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-        }
-
-        nav {
-            display: flex;
-            gap: 15px;
-        }
-
-        nav a {
-            color: #ffffff;
-            text-decoration: none;
-            font-weight: 500;
-            font-size: 1rem;
-            transition: color 0.3s, text-shadow 0.3s;
-            cursor: pointer;
-            position: relative;
-            padding: 5px 10px;
-        }
-
-        nav a::after {
-            content: '';
-            position: absolute;
-            width: 0;
-            height: 1px;
-            bottom: -3px;
-            left: 0;
-            background-color: #ffff00;
-            transition: width 0.3s;
-        }
-
-        nav a:hover {
-            color: #ffff00;
-            text-shadow: 0 0 5px rgba(255, 255, 0, 0.7);
-            background: rgba(255, 255, 0, 0.1);
-            border-radius: 5px;
-        }
-
-        nav a:hover::after {
-            width: 100%;
-        }
-
-        #hero {
-            height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            background: linear-gradient(135deg, #000000 0%, #1a1a1a 50%, #2d2d2d 100%);
-            background-size: 200% 200%;
-            animation: gradient 15s ease infinite;
-            color: #fff;
-            margin-top: 80px;
-            position: relative;
-            overflow: hidden;
-            border-bottom: 1px solid rgba(0, 255, 255, 0.2);
-        }
-
-        #hero::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 50%;
-            height: 100%;
-            background-image: url('https://drive.google.com/uc?export=view&id=1BNQVwZ9050hfq6nG-TSPV8gYU0NU6Sbt');
-            background-size: cover;
-            background-position: center left;
-            background-repeat: no-repeat;
-            opacity: 0.7;
-            z-index: 5; /* Временно увеличиваю z-index для отладки */
-            border: none;
-        }
-
-        @keyframes gradient {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
-
-        /* Cyberpunk Grid Background */
-        .grid-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: repeating-linear-gradient(transparent, transparent 19px, rgba(0, 255, 255, 0.1) 20px, transparent 21px), repeating-linear-gradient(90deg, transparent, transparent 19px, rgba(0, 255, 255, 0.1) 20px, transparent 21px);
-            z-index: 1;
-            opacity: 0.3;
-            pointer-events: none;
-        }
-
-        .floating-element {
-            position: absolute;
-            width: 20px;
-            height: 20px;
-            background-color: rgba(0, 255, 255, 0.3);
-            border-radius: 50%;
-            box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
-            animation: float 6s ease-in-out infinite;
-            z-index: 1;
-            transition: background-color 0.5s, box-shadow 0.5s;
-        }
-
-        .floating-element:hover {
-            background-color: rgba(255, 255, 0, 0.5);
-            box-shadow: 0 0 15px rgba(255, 255, 0, 0.8);
-        }
-
-        .floating-element:nth-child(2) { left: 10%; top: 20%; animation-duration: 8s; background-color: rgba(255, 255, 0, 0.3); box-shadow: 0 0 10px rgba(255, 255, 0, 0.5); }
-        .floating-element:nth-child(3) { left: 80%; top: 60%; animation-duration: 5s; background-color: rgba(0, 255, 255, 0.3); box-shadow: 0 0 10px rgba(0, 255, 255, 0.5); }
-        .floating-element:nth-child(4) { left: 30%; top: 80%; animation-duration: 7s; background-color: rgba(255, 255, 0, 0.3); box-shadow: 0 0 10px rgba(255, 255, 0, 0.5); }
-        .floating-element:nth-child(5) { left: 70%; top: 30%; animation-duration: 9s; background-color: rgba(0, 255, 255, 0.3); box-shadow: 0 0 10px rgba(0, 255, 255, 0.5); }
-        .floating-element:nth-child(6) { left: 50%; top: 50%; animation-duration: 4s; background-color: rgba(255, 255, 0, 0.3); box-shadow: 0 0 10px rgba(255, 255, 0, 0.5); }
-
-        @keyframes float {
-            0% { transform: translateY(0px); }
-            50% { transform: translateY(-40px); }
-            100% { transform: translateY(0px); }
-        }
-
-        .interactive-dot {
-            position: absolute;
-            width: 10px;
-            height: 10px;
-            background-color: rgba(0, 255, 255, 0.6);
-            border-radius: 50%;
-            box-shadow: 0 0 5px rgba(0, 255, 255, 0.8);
-            cursor: pointer;
-            transition: transform 0.3s, background-color 0.3s;
-            z-index: 1;
-        }
-
-        .interactive-dot:hover {
-            transform: scale(1.5);
-            background-color: rgba(255, 255, 0, 0.8);
-            box-shadow: 0 0 10px rgba(255, 255, 0, 0.9);
-        }
-
-        .interactive-dot:nth-child(2) { left: 15%; top: 30%; }
-        .interactive-dot:nth-child(3) { left: 85%; top: 70%; }
-        .interactive-dot:nth-child(4) { left: 25%; top: 85%; }
-        .interactive-dot:nth-child(5) { left: 75%; top: 25%; }
-
-        .spark {
-            position: absolute;
-            width: 5px;
-            height: 5px;
-            background-color: rgba(255, 255, 0, 0.8);
-            border-radius: 50%;
-            box-shadow: 0 0 8px rgba(255, 255, 0, 0.9);
-            animation: sparkMove 3s ease-in-out infinite;
-            z-index: 1;
-        }
-
-        @keyframes sparkMove {
-            0% { transform: translate(0, 0); opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { transform: translate(30px, -30px); opacity: 0; }
-        }
-
-        .spark:nth-child(2) { left: 50%; top: 20%; animation-duration: 2.5s; animation-delay: 0.2s; background-color: rgba(0, 255, 255, 0.8); box-shadow: 0 0 8px rgba(0, 255, 255, 0.9); }
-        .spark:nth-child(3) { left: 70%; top: 80%; animation-duration: 3.2s; animation-delay: 0.5s; }
-        .spark:nth-child(4) { left: 20%; top: 70%; animation-duration: 2.8s; animation-delay: 0.8s; background-color: rgba(0, 255, 255, 0.8); box-shadow: 0 0 8px rgba(0, 255, 255, 0.9); }
-
-        .cursor-steam {
-            position: fixed;
-            width: 30px;
-            height: 30px;
-            background-color: rgba(0, 255, 255, 0.9);
-            border-radius: 50%;
-            box-shadow: 0 0 10px rgba(0, 255, 255, 0.9);
-            z-index: 9999;
-            pointer-events: none;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            color: #000000;
-            font-size: 14px;
-            transform: translate(-50%, -50%);
-            transition: background-color 0.2s, box-shadow 0.2s;
-        }
-
-        /* Glitch Effect for Text */
-        .glitch {
-            position: relative;
-            display: inline-block;
-        }
-
-        .glitch::before,
-        .glitch::after {
-            content: attr(data-text);
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: transparent;
-            clip: rect(0, 900px, 0, 0);
-        }
-
-        .glitch::before {
-            left: 2px;
-            text-shadow: 1px 0 rgba(255, 0, 0, 0.7);
-            animation: glitch-anim 3s infinite linear alternate-reverse;
-        }
-
-        .glitch::after {
-            left: -2px;
-            text-shadow: -1px 0 rgba(0, 255, 255, 0.7);
-            animation: glitch-anim 2s infinite linear alternate-reverse;
-        }
-
-        @keyframes glitch-anim {
-            0% { clip: rect(0, 9999px, 0, 0); }
-            5% { clip: rect(10px, 9999px, 30px, 0); }
-            10% { clip: rect(50px, 9999px, 70px, 0); }
-            15% { clip: rect(20px, 9999px, 40px, 0); }
-            20% { clip: rect(60px, 9999px, 80px, 0); }
-            25% { clip: rect(30px, 9999px, 50px, 0); }
-            30% { clip: rect(70px, 9999px, 90px, 0); }
-            35% { clip: rect(40px, 9999px, 60px, 0); }
-            40% { clip: rect(80px, 9999px, 100px, 0); }
-            45% { clip: rect(10px, 9999px, 30px, 0); }
-            50% { clip: rect(90px, 9999px, 110px, 0); }
-            55% { clip: rect(20px, 9999px, 40px, 0); }
-            60% { clip: rect(60px, 9999px, 80px, 0); }
-            65% { clip: rect(30px, 9999px, 50px, 0); }
-            70% { clip: rect(70px, 9999px, 90px, 0); }
-            75% { clip: rect(40px, 9999px, 60px, 0); }
-            80% { clip: rect(80px, 9999px, 100px, 0); }
-            85% { clip: rect(10px, 9999px, 30px, 0); }
-            90% { clip: rect(50px, 9999px, 70px, 0); }
-            95% { clip: rect(20px, 9999px, 40px, 0); }
-            100% { clip: rect(0, 9999px, 0, 0); }
-        }
-
-        #hero h2 {
-            font-size: 3.5rem;
-            margin-bottom: 25px;
-            font-weight: 700;
-            text-shadow: 0 0 8px rgba(0, 255, 255, 0.6), 0 0 15px rgba(0, 255, 255, 0.3);
-            z-index: 10;
-            animation: none;
-            position: relative;
-            display: block;
-        }
-
-        #hero h2 span {
-            position: relative;
-            display: inline-block;
-        }
-
-        #hero h2 span::before,
-        #hero h2 span::after {
-            content: attr(data-word);
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: transparent;
-            clip: rect(0, 900px, 0, 0);
-            overflow: hidden;
-        }
-
-        #hero h2 span::before {
-            left: 3px;
-            text-shadow: 2px 0 rgba(255, 0, 0, 0.8);
-            animation: new-glitch-anim 2.5s infinite linear alternate-reverse;
-        }
-
-        #hero h2 span::after {
-            left: -3px;
-            text-shadow: -2px 0 rgba(0, 255, 255, 0.8);
-            animation: new-glitch-anim 1.8s infinite linear alternate-reverse;
-        }
-
-        @keyframes new-glitch-anim {
-            0% { clip: rect(0, 9999px, 0, 0); opacity: 1; }
-            10% { clip: rect(20px, 9999px, 40px, 0); opacity: 0.7; }
-            20% { clip: rect(60px, 9999px, 80px, 0); opacity: 0.5; }
-            30% { clip: rect(30px, 9999px, 50px, 0); opacity: 0.8; }
-            40% { clip: rect(90px, 9999px, 110px, 0); opacity: 0.6; }
-            50% { clip: rect(10px, 9999px, 30px, 0); opacity: 0.9; }
-            60% { clip: rect(70px, 9999px, 90px, 0); opacity: 0.5; }
-            70% { clip: rect(40px, 9999px, 60px, 0); opacity: 0.7; }
-            80% { clip: rect(80px, 9999px, 100px, 0); opacity: 0.8; }
-            90% { clip: rect(50px, 9999px, 70px, 0); opacity: 0.6; }
-            100% { clip: rect(0, 9999px, 0, 0); opacity: 1; }
-        }
-
-        #hero p {
-            font-size: 1.3rem;
-            margin-bottom: 35px;
-            max-width: 650px;
-            margin-left: auto;
-            margin-right: auto;
-            text-shadow: 0 0 5px rgba(0, 255, 255, 0.4);
-            z-index: 10;
-        }
-
-        .btn {
-            display: inline-block;
-            background-color: #ffff00;
-            color: #000000;
-            padding: 14px 35px;
-            text-decoration: none;
-            border-radius: 30px;
-            font-weight: 600;
-            transition: background-color 0.3s, transform 0.2s, box-shadow 0.3s, filter 0.1s;
-            box-shadow: 0 0 15px rgba(255, 255, 0, 0.7);
-            z-index: 10;
-            position: relative;
-            overflow: hidden;
-            cursor: none;
-            border: 1px solid rgba(255, 255, 0, 0.5);
-        }
-
-        .btn::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.3), transparent);
-            transition: 0.5s;
-        }
-
-        .btn:hover::before {
-            left: 100%;
-        }
-
-        .btn:hover {
-            background-color: #e6e600;
-            transform: translateY(-2px);
-            box-shadow: 0 0 25px rgba(255, 255, 0, 0.9);
-            animation: glitchButton 0.3s ease-in-out;
-            filter: blur(1px);
-        }
-
-        @keyframes glitchButton {
-            0% { transform: translate(0, 0); }
-            25% { transform: translate(2px, 2px); }
-            50% { transform: translate(-2px, -2px); }
-            75% { transform: translate(1px, -1px); }
-            100% { transform: translate(0, 0); }
-        }
-
-        #bot-info {
-            padding: 100px 0;
-            text-align: center;
-            background-color: #000000;
-            box-shadow: inset 0 0 15px rgba(0, 255, 255, 0.3);
-            position: relative;
-            border-top: 1px solid rgba(0, 255, 255, 0.2);
-            border-bottom: 1px solid rgba(0, 255, 255, 0.2);
-        }
-
-        #bot-info::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: repeating-linear-gradient(transparent, transparent 19px, rgba(0, 255, 255, 0.05) 20px, transparent 21px);
-            z-index: 1;
-            opacity: 0.2;
-            pointer-events: none;
-        }
-
-        #bot-info h2 {
-            font-size: 2.8rem;
-            margin-bottom: 30px;
-            color: #fff;
-            font-weight: 700;
-            text-shadow: 0 0 8px rgba(0, 255, 255, 0.5), 0 0 15px rgba(0, 255, 255, 0.3);
-            z-index: 2;
-            position: relative;
-        }
-
-        #bot-info p {
-            font-size: 1.2rem;
-            margin-bottom: 40px;
-            max-width: 700px;
-            margin-left: auto;
-            margin-right: auto;
-            text-shadow: 0 0 5px rgba(0, 255, 255, 0.4);
-            z-index: 2;
-            position: relative;
-        }
-
-        .bot-btn {
-            display: inline-block;
-            background-color: #00ffff;
-            color: #000000;
-            padding: 14px 35px;
-            text-decoration: none;
-            border-radius: 30px;
-            font-weight: 600;
-            transition: background-color 0.3s, transform 0.2s, box-shadow 0.3s, filter 0.1s;
-            box-shadow: 0 0 15px rgba(0, 255, 255, 0.7);
-            z-index: 10;
-            position: relative;
-            overflow: hidden;
-            cursor: none;
-            border: 1px solid rgba(0, 255, 255, 0.5);
-        }
-
-        .bot-btn::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 0, 0.3), transparent);
-            transition: 0.5s;
-        }
-
-        .bot-btn:hover::before {
-            left: 100%;
-        }
-
-        .bot-btn:hover {
-            background-color: #00e6e6;
-            transform: translateY(-2px);
-            box-shadow: 0 0 25px rgba(0, 255, 255, 0.9);
-            animation: glitchButton 0.3s ease-in-out;
-            filter: blur(1px);
-        }
-
-        .bot-btn i {
-            margin-right: 10px;
-            font-size: 1.5rem;
-        }
-
-        #social {
-            padding: 100px 0;
-            text-align: center;
-            background-color: #000000;
-            box-shadow: inset 0 0 15px rgba(0, 255, 255, 0.3);
-            position: relative;
-            border-bottom: 1px solid rgba(0, 255, 255, 0.2);
-        }
-
-        #social::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: repeating-linear-gradient(transparent, transparent 19px, rgba(0, 255, 255, 0.05) 20px, transparent 21px);
-            z-index: 1;
-            opacity: 0.2;
-            pointer-events: none;
-        }
-
-        #social h2 {
-            font-size: 2.8rem;
-            margin-bottom: 50px;
-            color: #fff;
-            font-weight: 700;
-            text-shadow: 0 0 8px rgba(0, 255, 255, 0.5), 0 0 15px rgba(0, 255, 255, 0.3);
-            z-index: 2;
-            position: relative;
-        }
-
-        .social-links {
-            display: flex;
-            justify-content: center;
-            gap: 25px;
-            flex-wrap: wrap;
-            z-index: 2;
-            position: relative;
-        }
-
-        .social-btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 180px;
-            height: 55px;
-            background-color: #1a1a1a;
-            color: #fff;
-            border-radius: 8px;
-            text-decoration: none;
-            transition: background-color 0.3s, transform 0.3s, box-shadow 0.3s, filter 0.1s;
-            box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
-            font-size: 1.2rem;
-            font-weight: 500;
-            gap: 10px;
-            position: relative;
-            overflow: hidden;
-            cursor: none;
-            border: 1px solid rgba(0, 255, 255, 0.3);
-        }
-
-        .social-btn::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 0, 0.3), transparent);
-            transition: 0.5s;
-        }
-
-        .social-btn:hover::before {
-            left: 100%;
-        }
-
-        .social-btn:hover {
-            background-color: #ffff00;
-            transform: scale(1.05);
-            box-shadow: 0 0 20px rgba(255, 255, 0, 0.8);
-            color: #000000;
-            animation: glitchButton 0.3s ease-in-out;
-            filter: blur(1px);
-        }
-
-        .social-btn i {
-            font-size: 1.7rem;
-        }
-
-        footer {
-            background-color: #1a1a1a;
-            color: #fff;
-            text-align: center;
-            padding: 25px 0;
-            box-shadow: 0 -2px 15px rgba(0, 255, 255, 0.3);
-            border-top: 1px solid rgba(0, 255, 255, 0.2);
-        }
-
-        /* Адаптивный дизайн для мобильных устройств */
-        @media (max-width: 768px) {
-            header .container {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-
-            header h1 {
-                font-size: 1.5rem;
-                margin-bottom: 10px;
-            }
-
-            header h1 i {
-                font-size: 1.8rem;
-            }
-
-            nav {
-                width: 100%;
-                justify-content: space-between;
-            }
-
-            nav a {
-                font-size: 0.9rem;
-            }
-
-            #hero h2 {
-                font-size: 2.2rem;
-                margin-bottom: 20px;
-            }
-
-            #hero p {
-                font-size: 1rem;
-                margin-bottom: 30px;
-                max-width: 90%;
-            }
-
-            .btn {
-                padding: 12px 30px;
-                font-size: 1rem;
-            }
-
-            #bot-info {
-                padding: 60px 0;
-            }
-
-            #bot-info h2 {
-                font-size: 2rem;
-                margin-bottom: 25px;
-            }
-
-            #bot-info p {
-                font-size: 1rem;
-                margin-bottom: 30px;
-                max-width: 90%;
-            }
-
-            .bot-btn {
-                padding: 12px 30px;
-                font-size: 1rem;
-            }
-
-            #social {
-                padding: 60px 0;
-            }
-
-            #social h2 {
-                font-size: 2rem;
-                margin-bottom: 30px;
-            }
-
-            .social-links {
-                flex-direction: column;
-                align-items: center;
-                gap: 15px;
-            }
-
-            .social-btn {
-                width: 160px;
-                height: 50px;
-                font-size: 1.1rem;
-            }
-
-            .social-btn i {
-                font-size: 1.5rem;
-            }
-
-            footer {
-                padding: 20px 0;
-                font-size: 0.9rem;
-            }
-        }
-
-        @media (max-width: 480px) {
-            header {
-                padding: 1rem 0;
-            }
-
-            header h1 {
-                font-size: 1.3rem;
-            }
-
-            header h1 i {
-                font-size: 1.5rem;
-            }
-
-            nav {
-                gap: 10px;
-            }
-
-            nav a {
-                font-size: 0.8rem;
-            }
-
-            #hero h2 {
-                font-size: 1.8rem;
-            }
-
-            #hero p {
-                font-size: 0.9rem;
-            }
-
-            .btn {
-                padding: 10px 25px;
-                font-size: 0.9rem;
-            }
-
-            #bot-info h2 {
-                font-size: 1.8rem;
-            }
-
-            #bot-info p {
-                font-size: 0.9rem;
-            }
-
-            .bot-btn {
-                padding: 10px 25px;
-                font-size: 0.9rem;
-            }
-
-            #social h2 {
-                font-size: 1.8rem;
-            }
-
-            .social-btn {
-                width: 140px;
-                height: 45px;
-                font-size: 1rem;
-            }
-
-            .social-btn i {
-                font-size: 1.3rem;
-            }
-        }
-    </style>
+  <meta charset="UTF-8">
+  <title>Космический Аукцион</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    * { box-sizing: border-box; margin:0; padding:0; }
+    html, body { height:100%; font-family:'Segoe UI', sans-serif; color:#fff; background:#000; position:relative; overflow:hidden; }
+
+    .stars {
+      position: absolute; top:0; left:0; width:100%; height:100%;
+      background-color: rgba(255, 255, 255, 0.2);
+      animation: stars 150s linear infinite;
+      z-index: -1;
+    }
+    .stars::before {
+      content:""; position:absolute; top:0; left:0; width:100%; height:100%;
+      background: radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px);
+      background-size: 10px 10px;
+      animation: moveStars 10s linear infinite;
+    }
+    @keyframes stars { 0% { transform: translateY(0); } 100% { transform: translateY(-100%); } }
+    @keyframes moveStars { 0% { background-position: 0 0; } 100% { background-position: 100% 100%; } }
+
+    .tab { display:none; padding:20px; min-height: calc(100vh - 70px); background: linear-gradient(to bottom right, rgba(0,0,0,0.8), rgba(25,25,25,0.6)); border-radius: 16px; backdrop-filter: blur(12px); margin: 20px; }
+    .active { display:block; }
+
+    .nav { position:fixed; bottom:0; width:100%; display:flex; background: rgba(10,10,10,0.95); border-top:1px solid #444; }
+    .nav button { flex:1; padding:12px; background:none; border:none; color:#fff; font-size:14px; display:flex; flex-direction:column; align-items:center; transition: background .3s, transform .2s ease; cursor:pointer; }
+    .nav button:hover { background: linear-gradient(135deg, rgba(255,255,255,0.2), rgba(0,0,0,0.4)); transform: translateY(-2px); }
+    .nav i { font-size:18px; margin-bottom:4px; }
+
+    .center { text-align:center; }
+    .auction-img { width: 220px; height: 130px; object-fit:cover; filter:blur(6px); transition: filter .5s ease; margin:20px auto; border:1px solid #555; border-radius:12px; }
+    .clear { filter:none !important; }
+
+    input[type="number"], input[type="text"], input[type="file"], button {
+      width:100%; padding:12px; margin:8px 0; border-radius:10px;
+      background: rgba(255,255,255,0.05); border:1px solid #666; color:#fff; font-size:16px;
+      backdrop-filter: blur(4px);
+    }
+    input[type="number"]::placeholder, input[type="text"]::placeholder { color:#aaa; }
+    button { position:relative; overflow:hidden; z-index:1; transition: all .3s; }
+    button::before { content:""; position:absolute; top:0; left:-100%; width:100%; height:100%; background:rgba(255,255,255,0.15); transition: left .4s; z-index:-1; }
+    button:hover::before { left:0; }
+    button:hover { color:#000; background:#fff; }
+    button:active { transform: scale(0.97); }
+
+    .btn-primary { background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(0,0,0,0.2)); color:#fff; }
+    .btn-primary:hover { background: linear-gradient(135deg, rgba(255,255,255,0.3), rgba(0,0,0,0.5)); }
+    .admin-btns button { margin-top:12px; }
+
+    #topPlayers { margin-top: 20px; }
+    .top-player { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #444; }
+    .top-player span { font-size: 16px; }
+  </style>
 </head>
 <body>
-    <header>
-        <div class="container">
-            <h1><i class="fab fa-steam"></i> SteamKeyDrop</h1>
-            <nav>
-                <a href="#hero">Главная</a>
-                <a href="#bot-info">О боте</a>
-                <a href="#social">Сообщество</a>
-            </nav>
-        </div>
-    </header>
+<div class="stars"></div>
 
-    <section id="hero">
-        <div class="grid-overlay"></div>
-        <div class="container">
-            <h2 class="glitch" data-text="Получите свои ключи Steam прямо сейчас!">Получите свои ключи Steam прямо сейчас!</h2>
-            <p>Присоединяйтесь к нашему сообществу в Telegram и выигрывайте удивительные ключи для игр Steam каждый день.</p>
-            <a href="https://t.me/perehod0712" class="btn" target="_blank">Присоединиться</a>
-        </div>
-        <div class="floating-element"></div>
-        <div class="floating-element"></div>
-        <div class="floating-element"></div>
-        <div class="floating-element"></div>
-        <div class="floating-element"></div>
-        <div class="floating-element"></div>
-        <div class="interactive-dot"></div>
-        <div class="interactive-dot"></div>
-        <div class="interactive-dot"></div>
-        <div class="interactive-dot"></div>
-        <div class="spark"></div>
-        <div class="spark"></div>
-        <div class="spark"></div>
-    </section>
+<div id="main" class="tab active center">
+  <h2 id="gameTitle">Нет текущего аукциона</h2>
+  <img id="gameImage" class="auction-img" src="" alt="">
+  <p id="countdownText">Ожидание начала…</p>
+  <div id="bidSection" style="display:none;">
+    <input id="bidAmount" type="number" placeholder="Введите свою сумму (₽)">
+    <button class="btn-primary" onclick="placeBid()">Сделать ставку</button>
+  </div>
+  <div id="winnerText" style="margin-top:24px;"></div>
 
-    <section id="bot-info">
-        <div class="container">
-            <h2 class="glitch" data-text="О SteamKeyDrop Боте">О SteamKeyDrop Боте</h2>
-            <p>SteamKeyDrop - это ваш кибернетический помощник в мире бесплатных ключей для игр Steam. Присоединяйтесь к нашему сообществу и получайте доступ к эксклюзивным раздачам каждый день!</p>
-            <a href="http://t.me/Steam_key_free_bot" class="bot-btn" target="_blank"><i class="fas fa-robot"></i> Бот с халявой</a>
-        </div>
-    </section>
+  <div id="topPlayers">
+    <h3>Топ игроков</h3>
+    <p>Пока никто не ставил.</p>
+  </div>
+</div>
 
-    <section id="social">
-        <div class="container">
-            <h2 class="glitch" data-text="Следите за нами">Следите за нами</h2>
-            <div class="social-links">
-                <a href="http://t.me/Steam_key_free_bot" class="social-btn" target="_blank"><i class="fas fa-robot"></i> Наш бот</a>
-                <a href="https://t.me/perehod0712" class="social-btn" target="_blank"><i class="fab fa-telegram-plane"></i> Telegram</a>
-                <a href="https://www.tiktok.com/@steamkey_drop?_t=ZT-8vmWzQPidYY&_r=1" class="social-btn" target="_blank"><i class="fab fa-tiktok"></i> TikTok</a>
-            </div>
-        </div>
-    </section>
+<div id="settings" class="tab center">
+  <h2>Мои выигрыши</h2>
+  <div id="myKey">Вы ещё не выигрывали.</div>
+  <button class="btn-primary" style="margin-top: 24px;" onclick="alert('Авторизация скоро будет доступна')">Авторизоваться через Telegram</button>
+</div>
 
-    <footer>
-        <div class="container">
-            <p>&copy; 2025 SteamKeyDrop. Все права защищены.</p>
-        </div>
-    </footer>
+<div id="admin" class="tab center">
+  <h2>Админ панель</h2>
+  <input id="adminTitle" type="text" placeholder="Название игры">
+  <input id="adminImage" type="file" accept="image/*">
+  <input id="adminKey" type="text" placeholder="Ключ (Steam)">
+  <input id="adminTime" type="number" placeholder="Время ставки (сек)">
+  <div class="admin-btns">
+    <button class="btn-primary" onclick="startAuction()">Добавить игру</button>
+    <button class="btn-primary" onclick="endAuction()">Закончить аукцион</button>
+    <button class="btn-primary" onclick="resetAuction()">Сбросить</button>
+  </div>
+</div>
 
-    <script>
-        // JavaScript для создания интерактивных элементов, следующих за курсором
-        let steamCursor = null;
-        document.addEventListener('mousemove', function(e) {
-            const heroSection = document.getElementById('hero');
-            const rect = heroSection.getBoundingClientRect();
-            
-            if (e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom) {
-                if (!steamCursor) {
-                    steamCursor = document.createElement('div');
-                    steamCursor.className = 'cursor-steam';
-                    steamCursor.innerHTML = '<i class="fab fa-steam"></i>';
-                    document.body.appendChild(steamCursor);
-                }
-                steamCursor.style.left = e.clientX + 'px';
-                steamCursor.style.top = e.clientY + 'px';
-            } else {
-                if (steamCursor) {
-                    steamCursor.remove();
-                    steamCursor = null;
-                }
-            }
-        });
+<div class="nav">
+  <button onclick="switchTab('main')"><i class="fas fa-gavel"></i><span>Главное</span></button>
+  <button onclick="switchTab('settings')"><i class="fas fa-cog"></i><span>Настройки</span></button>
+  <button onclick="switchTab('admin')"><i class="fas fa-user-shield"></i><span>Админ</span></button>
+</div>
 
-        // Плавная прокрутка к разделу при клике на навигационное меню
-        document.querySelectorAll('nav a').forEach(anchor => {
-            anchor.addEventListener('click', function(e) {
-                e.preventDefault();
-                const targetId = this.getAttribute('href').substring(1);
-                const targetElement = document.getElementById(targetId);
-                if (targetElement) {
-                    window.scrollTo({
-                        top: targetElement.offsetTop - 70, // Учитываем высоту фиксированного заголовка
-                        behavior: 'smooth'
-                    });
-                }
-            });
-        });
+<script>
+  let auction = { title:'', img:'', key:'', time:0, remaining:0, active:false, winner:null, bids:[] };
 
-        // Добавляем случайный глюк-эффект к интерактивным точкам при клике
-        document.querySelectorAll('.interactive-dot, .floating-element').forEach(element => {
-            element.addEventListener('click', function() {
-                this.style.animation = 'glitchDot 0.5s ease-in-out';
-                setTimeout(() => {
-                    this.style.animation = '';
-                }, 500);
-            });
-        });
+  function switchTab(tab) {
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    document.getElementById(tab).classList.add('active');
+  }
 
-        // Динамически оборачиваем каждое слово в #hero h2 в span для эффекта глюка и добавляем перенос строки
-        document.addEventListener('DOMContentLoaded', function() {
-            const heroTitle = document.querySelector('#hero h2');
-            if (heroTitle) {
-                const words = heroTitle.textContent.split(' ');
-                let modifiedHTML = '';
-                words.forEach((word, index) => {
-                    if (word === 'Прямо') {
-                        modifiedHTML += '<br>' + `<span data-word="${word}">${word}</span> `;
-                    } else {
-                        modifiedHTML += `<span data-word="${word}">${word}</span> `;
-                    }
-                });
-                heroTitle.innerHTML = modifiedHTML.trim();  // Устанавливаем обновленный HTML
-            }
-        });
+  function updateUI() {
+    document.getElementById('gameTitle').textContent = auction.title || 'Нет текущего аукциона';
+    document.getElementById('gameImage').src = auction.img || '';
+    document.getElementById('gameImage').classList.remove('clear');
+    document.getElementById('winnerText').textContent = '';
+    document.getElementById('bidSection').style.display = auction.active ? 'block' : 'none';
+    document.getElementById('countdownText').textContent = auction.active ? `До конца ставки: ${auction.remaining} сек.` : 'Ожидание начала…';
+  }
 
-        // Анимация глюка для точек
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes glitchDot {
-                0% { transform: scale(1); opacity: 1; }
-                25% { transform: scale(1.2) translate(2px, 2px); opacity: 0.5; }
-                50% { transform: scale(0.8) translate(-2px, -2px); opacity: 0.3; }
-                75% { transform: scale(1.1) translate(1px, -1px); opacity: 0.7; }
-                100% { transform: scale(1); opacity: 1; }
-            }
-        `;
-        document.head.appendChild(style);
-    </script>
+  function startAuction(){
+    const title = document.getElementById('adminTitle').value;
+    const file = document.getElementById('adminImage').files[0];
+    const key = document.getElementById('adminKey').value;
+    const time = parseInt(document.getElementById('adminTime').value);
+    if(!title||!file||!key||isNaN(time)){
+      alert('Заполните все поля'); return;
+    }
+    const reader=new FileReader();
+    reader.onload=e=>{
+      auction = { title, img:e.target.result, key, time, remaining:time, active:true, winner:null, bids:[] };
+      updateUI();
+      startCountdown();
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function placeBid(){
+    if(!auction.active) return;
+    const amt = parseFloat(document.getElementById('bidAmount').value);
+    if(isNaN(amt)||amt<=0){ alert('Введите корректную сумму'); return; }
+    auction.remaining = auction.time;
+    auction.bids.push({ user:'Вы', amount:amt});
+    auction.winner = 'Вы';
+    alert('Ставка принята: ' + amt + '₽');
+    updateUI();
+  }
+
+  function startCountdown(){
+    const interval = setInterval(()=>{
+      if(!auction.active){ clearInterval(interval); return; }
+      auction.remaining--;
+      updateUI();
+      if(auction.remaining<=0){
+        auction.active=false;
+        document.getElementById('gameImage').classList.add('clear');
+        if(auction.winner==='Вы'){
+          document.getElementById('winnerText').textContent = 'Вы выиграли!';
+          document.getElementById('myKey').textContent = 'Ваш ключ: ' + auction.key;
+        } else {
+          document.getElementById('winnerText').textContent = 'Победитель: ' + (auction.winner || 'никто');
+        }
+        document.getElementById('bidSection').style.display='none';
+        document.getElementById('countdownText').textContent='Аукцион завершён!';
+      }
+    },1000);
+  }
+
+  function endAuction(){ auction.active=false; updateUI(); }
+  function resetAuction(){ auction = { title:'', img:'', key:'', time:0, remaining:0, active:false, winner:null, bids:[] }; updateUI(); }
+</script>
 </body>
 </html>
