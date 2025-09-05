@@ -1,172 +1,1364 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <title>Космический Аукцион</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <style>
-    * { box-sizing: border-box; margin:0; padding:0; }
-    html, body { height:100%; font-family:'Segoe UI', sans-serif; color:#fff; background:#000; position:relative; overflow:hidden; }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TeleQr</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
 
-    .stars {
-      position: absolute; top:0; left:0; width:100%; height:100%;
-      background-color: rgba(255, 255, 255, 0.2);
-      animation: stars 150s linear infinite;
-      z-index: -1;
-    }
-    .stars::before {
-      content:""; position:absolute; top:0; left:0; width:100%; height:100%;
-      background: radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px);
-      background-size: 10px 10px;
-      animation: moveStars 10s linear infinite;
-    }
-    @keyframes stars { 0% { transform: translateY(0); } 100% { transform: translateY(-100%); } }
-    @keyframes moveStars { 0% { background-position: 0 0; } 100% { background-position: 100% 100%; } }
+        :root {
+            --bg-primary: #000;
+            --bg-secondary: #121212;
+            --bg-card: #202020;
+            --text-primary: #fff;
+            --text-secondary: #aaa;
+            --accent: #1d9bf0;
+            --accent-hover: #1a8cd8;
+            --border: #333;
+            --success: #00ba7c;
+            --warning: #ff9e00;
+            --danger: #ff0000;
+        }
 
-    .tab { display:none; padding:20px; min-height: calc(100vh - 70px); background: linear-gradient(to bottom right, rgba(0,0,0,0.8), rgba(25,25,25,0.6)); border-radius: 16px; backdrop-filter: blur(12px); margin: 20px; }
-    .active { display:block; }
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            overflow-x: hidden;
+        }
 
-    .nav { position:fixed; bottom:0; width:100%; display:flex; background: rgba(10,10,10,0.95); border-top:1px solid #444; }
-    .nav button { flex:1; padding:12px; background:none; border:none; color:#fff; font-size:14px; display:flex; flex-direction:column; align-items:center; transition: background .3s, transform .2s ease; cursor:pointer; }
-    .nav button:hover { background: linear-gradient(135deg, rgba(255,255,255,0.2), rgba(0,0,0,0.4)); transform: translateY(-2px); }
-    .nav i { font-size:18px; margin-bottom:4px; }
+        .container {
+            width: 100%;
+            max-width: 600px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
 
-    .center { text-align:center; }
-    .auction-img { width: 220px; height: 130px; object-fit:cover; filter:blur(6px); transition: filter .5s ease; margin:20px auto; border:1px solid #555; border-radius:12px; }
-    .clear { filter:none !important; }
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 0;
+            animation: fadeInDown 0.5s ease;
+        }
 
-    input[type="number"], input[type="text"], input[type="file"], button {
-      width:100%; padding:12px; margin:8px 0; border-radius:10px;
-      background: rgba(255,255,255,0.05); border:1px solid #666; color:#fff; font-size:16px;
-      backdrop-filter: blur(4px);
-    }
-    input[type="number"]::placeholder, input[type="text"]::placeholder { color:#aaa; }
-    button { position:relative; overflow:hidden; z-index:1; transition: all .3s; }
-    button::before { content:""; position:absolute; top:0; left:-100%; width:100%; height:100%; background:rgba(255,255,255,0.15); transition: left .4s; z-index:-1; }
-    button:hover::before { left:0; }
-    button:hover { color:#000; background:#fff; }
-    button:active { transform: scale(0.97); }
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
 
-    .btn-primary { background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(0,0,0,0.2)); color:#fff; }
-    .btn-primary:hover { background: linear-gradient(135deg, rgba(255,255,255,0.3), rgba(0,0,0,0.5)); }
-    .admin-btns button { margin-top:12px; }
+        header h1 {
+            font-size: 24px;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
 
-    #topPlayers { margin-top: 20px; }
-    .top-player { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #444; }
-    .top-player span { font-size: 16px; }
-  </style>
+        header h1 i {
+            color: var(--accent);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        .menu-btn {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .menu-btn:hover {
+            background: var(--accent);
+            transform: rotate(90deg);
+        }
+
+        .card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid var(--border);
+            animation: fadeIn 0.5s ease;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        label {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        input, select, textarea {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            color: var(--text-primary);
+            font-size: 16px;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(29, 155, 240, 0.2);
+        }
+
+        .btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            padding: 16px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 4px 12px rgba(29, 155, 240, 0.3);
+        }
+
+        .btn:hover {
+            background: var(--accent-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(29, 155, 240, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: #2a2a2a;
+        }
+
+        #qrcode-container {
+            display: none;
+            text-align: center;
+            padding: 24px;
+            animation: zoomIn 0.5s ease;
+        }
+
+        @keyframes zoomIn {
+            from { opacity: 0; transform: scale(0.8); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        #qrcode {
+            display: inline-block;
+            padding: 16px;
+            background: white;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            position: relative;
+        }
+
+        .actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .action-btn {
+            flex: 1;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            color: var(--text-primary);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .action-btn:hover {
+            background: #2a2a2a;
+            transform: translateY(-2px);
+        }
+
+        .history {
+            margin-top: 16px;
+        }
+
+        .history-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .history-header h3 {
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+            animation: slideInLeft 0.3s ease;
+        }
+
+        @keyframes slideInLeft {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .history-item:hover {
+            background: #2a2a2a;
+            transform: translateX(5px);
+        }
+
+        .history-item-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .history-item-header i {
+            color: var(--accent);
+        }
+
+        .history-item-content {
+            font-size: 14px;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .empty-history {
+            text-align: center;
+            padding: 24px;
+            color: var(--text-secondary);
+        }
+
+        footer {
+            margin-top: auto;
+            padding: 24px 0;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 0 16px;
+            }
+            
+            .card {
+                padding: 20px;
+            }
+            
+            .actions {
+                flex-direction: column;
+            }
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-100px);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px 24px;
+            font-weight: 500;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from { transform: translateX(-50%) translateY(-100px); }
+            to { transform: translateX(-50%) translateY(0); }
+        }
+
+        .notification.show {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .notification.success {
+            border-left: 4px solid var(--success);
+        }
+
+        .notification.error {
+            border-left: 4px solid var(--danger);
+        }
+
+        .notification.warning {
+            border-left: 4px solid var(--warning);
+        }
+
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 2000;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal-content {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid var(--border);
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            animation: zoomIn 0.3s ease;
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 24px;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .close-modal:hover {
+            color: var(--text-primary);
+        }
+
+        .modal-header {
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .modal-header h2 {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .mode-options {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .mode-option {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .mode-option:hover {
+            background: var(--accent);
+            transform: translateY(-3px);
+        }
+
+        .mode-option i {
+            font-size: 24px;
+            margin-bottom: 12px;
+            display: block;
+        }
+
+        .advanced-settings {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .color-picker {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .color-picker input {
+            height: 40px;
+            padding: 0;
+            border: none;
+        }
+
+        .logo-upload {
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 20px;
+        }
+
+        .logo-upload:hover {
+            border-color: var(--accent);
+            background: rgba(29, 155, 240, 0.1);
+        }
+
+        .logo-preview {
+            max-width: 100px;
+            max-height: 100px;
+            margin: 10px auto;
+            display: none;
+            border-radius: 8px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 16px;
+            overflow-x: auto;
+        }
+
+        .tab {
+            padding: 10px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .tab.active {
+            background: var(--accent);
+        }
+
+        .tab:not(.active):hover {
+            background: var(--bg-secondary);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .image-preview {
+            max-width: 100%;
+            max-height: 300px;
+            margin: 20px 0;
+            border-radius: 12px;
+            display: none;
+        }
+
+        .contact-form, .wifi-form, .email-form {
+            display: grid;
+            gap: 16px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .image-upload-section {
+            text-align: center;
+        }
+
+        .image-upload-btn {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            color: var(--text-primary);
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+            margin-bottom: 16px;
+        }
+
+        .image-upload-btn:hover {
+            background: #2a2a2a;
+        }
+
+        .generated-link {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 16px;
+            word-break: break-all;
+            display: none;
+        }
+
+        .copy-link-btn {
+            background: var(--accent);
+            border: none;
+            border-radius: 8px;
+            padding: 12px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 12px;
+            width: 100%;
+        }
+
+        .scanner-container {
+            text-align: center;
+        }
+
+        .scanner-video {
+            width: 100%;
+            max-width: 300px;
+            border-radius: 12px;
+            margin: 0 auto 20px;
+            display: none;
+        }
+
+        .scanner-canvas {
+            display: none;
+        }
+
+        .scan-result {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 16px;
+            word-break: break-all;
+            display: none;
+        }
+
+        .open-link-btn {
+            background: var(--accent);
+            border: none;
+            border-radius: 8px;
+            padding: 12px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 12px;
+            width: 100%;
+        }
+
+        @media (max-width: 480px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .advanced-settings {
+                grid-template-columns: 1fr;
+            }
+            
+            .mode-options {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
 <body>
-<div class="stars"></div>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-qrcode"></i> QR Generator & Scanner</h1>
+            <div class="menu-btn" onclick="openModal()">
+                <i class="fas fa-bars"></i>
+            </div>
+        </header>
 
-<div id="main" class="tab active center">
-  <h2 id="gameTitle">Нет текущего аукциона</h2>
-  <img id="gameImage" class="auction-img" src="" alt="">
-  <p id="countdownText">Ожидание начала…</p>
-  <div id="bidSection" style="display:none;">
-    <input id="bidAmount" type="number" placeholder="Введите свою сумму (₽)">
-    <button class="btn-primary" onclick="placeBid()">Сделать ставку</button>
-  </div>
-  <div id="winnerText" style="margin-top:24px;"></div>
+        <div class="card">
+            <div class="tabs">
+                <div class="tab active" onclick="switchTab('url')">URL</div>
+                <div class="tab" onclick="switchTab('text')">Текст</div>
+                <div class="tab" onclick="switchTab('image')">Изображение</div>
+                <div class="tab" onclick="switchTab('scanner')">Сканер</div>
+            </div>
 
-  <div id="topPlayers">
-    <h3>Топ игроков</h3>
-    <p>Пока никто не ставил.</p>
-  </div>
-</div>
+            <div class="tab-content active" id="url-tab">
+                <div class="input-group">
+                    <label for="urlInput">Введите URL</label>
+                    <input 
+                        type="url" 
+                        id="urlInput" 
+                        placeholder="https://example.com" 
+                        value="https://example.com"
+                    >
+                </div>
+            </div>
 
-<div id="settings" class="tab center">
-  <h2>Мои выигрыши</h2>
-  <div id="myKey">Вы ещё не выигрывали.</div>
-  <button class="btn-primary" style="margin-top: 24px;" onclick="alert('Авторизация скоро будет доступна')">Авторизоваться через Telegram</button>
-</div>
+            <div class="tab-content" id="text-tab">
+                <div class="input-group">
+                    <label for="textInput">Введите текст</label>
+                    <textarea 
+                        id="textInput" 
+                        placeholder="Введите текст для QR-кода"
+                        rows="4"
+                    ></textarea>
+                </div>
+            </div>
 
-<div id="admin" class="tab center">
-  <h2>Админ панель</h2>
-  <input id="adminTitle" type="text" placeholder="Название игры">
-  <input id="adminImage" type="file" accept="image/*">
-  <input id="adminKey" type="text" placeholder="Ключ (Steam)">
-  <input id="adminTime" type="number" placeholder="Время ставки (сек)">
-  <div class="admin-btns">
-    <button class="btn-primary" onclick="startAuction()">Добавить игру</button>
-    <button class="btn-primary" onclick="endAuction()">Закончить аукцион</button>
-    <button class="btn-primary" onclick="resetAuction()">Сбросить</button>
-  </div>
-</div>
+            <div class="tab-content" id="image-tab">
+                <div class="image-upload-section">
+                    <div class="input-group">
+                        <label for="imageInput">Загрузите изображение</label>
+                        <input 
+                            type="file" 
+                            id="imageInput" 
+                            accept="image/*"
+                            style="display: none;"
+                        >
+                        <button class="image-upload-btn" onclick="document.getElementById('imageInput').click()">
+                            <i class="fas fa-upload"></i> Выбрать изображение
+                        </button>
+                        <img id="imagePreview" class="image-preview" alt="Предпросмотр">
+                    </div>
+                    <div class="generated-link" id="generatedLink">
+                        <div>Ссылка на изображение:</div>
+                        <div id="linkText"></div>
+                        <button class="copy-link-btn" onclick="copyLink()">
+                            <i class="fas fa-copy"></i> Копировать ссылку
+                        </button>
+                    </div>
+                </div>
+            </div>
 
-<div class="nav">
-  <button onclick="switchTab('main')"><i class="fas fa-gavel"></i><span>Главное</span></button>
-  <button onclick="switchTab('settings')"><i class="fas fa-cog"></i><span>Настройки</span></button>
-  <button onclick="switchTab('admin')"><i class="fas fa-user-shield"></i><span>Админ</span></button>
-</div>
+            <div class="tab-content" id="scanner-tab">
+                <div class="scanner-container">
+                    <div class="input-group">
+                        <label>Сканировать с камеры</label>
+                        <button class="btn" id="startCameraBtn" onclick="startCamera()">
+                            <i class="fas fa-camera"></i> Включить камеру
+                        </button>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>Или загрузите изображение с QR-кодом</label>
+                        <input 
+                            type="file" 
+                            id="qrImageInput" 
+                            accept="image/*"
+                            style="display: none;"
+                        >
+                        <button class="btn btn-secondary" onclick="document.getElementById('qrImageInput').click()">
+                            <i class="fas fa-image"></i> Загрузить изображение
+                        </button>
+                    </div>
+                    
+                    <video id="scannerVideo" class="scanner-video" autoplay playsinline></video>
+                    <canvas id="scannerCanvas" class="scanner-canvas"></canvas>
+                    
+                    <div class="scan-result" id="scanResult">
+                        <div>Результат сканирования:</div>
+                        <div id="scanResultText"></div>
+                        <button class="open-link-btn" id="openLinkBtn" style="display: none;">
+                            <i class="fas fa-external-link-alt"></i> Открыть ссылку
+                        </button>
+                        <button class="copy-link-btn" onclick="copyScanResult()">
+                            <i class="fas fa-copy"></i> Копировать результат
+                        </button>
+                    </div>
+                </div>
+            </div>
 
-<script>
-  let auction = { title:'', img:'', key:'', time:0, remaining:0, active:false, winner:null, bids:[] };
+            <button class="btn" onclick="generateQR()">
+                <i class="fas fa-qrcode"></i>
+                Создать QR-код
+            </button>
+        </div>
 
-  function switchTab(tab) {
-    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-    document.getElementById(tab).classList.add('active');
-  }
+        <div class="card" id="qrcode-container">
+            <div id="qrcode"></div>
+            <div class="actions">
+                <button class="action-btn" onclick="downloadQR()">
+                    <i class="fas fa-download"></i>
+                    Скачать
+                </button>
+                <button class="action-btn" onclick="copyToClipboard()">
+                    <i class="fas fa-copy"></i>
+                    Копировать
+                </button>
+            </div>
+        </div>
 
-  function updateUI() {
-    document.getElementById('gameTitle').textContent = auction.title || 'Нет текущего аукциона';
-    document.getElementById('gameImage').src = auction.img || '';
-    document.getElementById('gameImage').classList.remove('clear');
-    document.getElementById('winnerText').textContent = '';
-    document.getElementById('bidSection').style.display = auction.active ? 'block' : 'none';
-    document.getElementById('countdownText').textContent = auction.active ? `До конца ставки: ${auction.remaining} сек.` : 'Ожидание начала…';
-  }
+        <div class="card history">
+            <div class="history-header">
+                <h3>История</h3>
+            </div>
+            <div class="history-list" id="historyList">
+                <div class="empty-history">
+                    <i class="fas fa-history"></i>
+                    <p>Нет сохраненных QR-кодов</p>
+                </div>
+            </div>
+        </div>
+    </div>
 
-  function startAuction(){
-    const title = document.getElementById('adminTitle').value;
-    const file = document.getElementById('adminImage').files[0];
-    const key = document.getElementById('adminKey').value;
-    const time = parseInt(document.getElementById('adminTime').value);
-    if(!title||!file||!key||isNaN(time)){
-      alert('Заполните все поля'); return;
-    }
-    const reader=new FileReader();
-    reader.onload=e=>{
-      auction = { title, img:e.target.result, key, time, remaining:time, active:true, winner:null, bids:[] };
-      updateUI();
-      startCountdown();
-    };
-    reader.readAsDataURL(file);
-  }
+    <footer>
+        <p>Создавайте и сканируйте QR-коды для любых целей</p>
+    </footer>
 
-  function placeBid(){
-    if(!auction.active) return;
-    const amt = parseFloat(document.getElementById('bidAmount').value);
-    if(isNaN(amt)||amt<=0){ alert('Введите корректную сумму'); return; }
-    auction.remaining = auction.time;
-    auction.bids.push({ user:'Вы', amount:amt});
-    auction.winner = 'Вы';
-    alert('Ставка принята: ' + amt + '₽');
-    updateUI();
-  }
+    <!-- Modal for advanced settings -->
+    <div class="modal" id="settingsModal">
+        <div class="modal-content">
+            <button class="close-modal" onclick="closeModal()">&times;</button>
+            <div class="modal-header">
+                <h2>Расширенные настройки</h2>
+            </div>
+            
+            <h3>Настройки QR-кода</h3>
+            <div class="advanced-settings">
+                <div class="input-group">
+                    <label for="size">Размер (px)</label>
+                    <input type="number" id="size" min="100" max="500" value="200">
+                </div>
+                <div class="input-group">
+                    <label for="errorCorrection">Коррекция ошибок</label>
+                    <select id="errorCorrection">
+                        <option value="L">L (7%)</option>
+                        <option value="M" selected>M (15%)</option>
+                        <option value="Q">Q (25%)</option>
+                        <option value="H">H (30%)</option>
+                    </select>
+                </div>
+                <div class="color-picker">
+                    <label for="fgColor">Цвет</label>
+                    <input type="color" id="fgColor" value="#000000">
+                </div>
+                <div class="color-picker">
+                    <label for="bgColor">Фон</label>
+                    <input type="color" id="bgColor" value="#ffffff">
+                </div>
+            </div>
+            
+            <div class="input-group">
+                <label>Логотип в центре</label>
+                <div class="logo-upload" id="logoUpload">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <p>Перетащите логотип или кликните</p>
+                    <input type="file" id="logoFile" accept="image/*" style="display: none;">
+                </div>
+                <img id="logoPreview" class="logo-preview" alt="Логотип">
+            </div>
+        </div>
+    </div>
 
-  function startCountdown(){
-    const interval = setInterval(()=>{
-      if(!auction.active){ clearInterval(interval); return; }
-      auction.remaining--;
-      updateUI();
-      if(auction.remaining<=0){
-        auction.active=false;
-        document.getElementById('gameImage').classList.add('clear');
-        if(auction.winner==='Вы'){
-          document.getElementById('winnerText').textContent = 'Вы выиграли!';
-          document.getElementById('myKey').textContent = 'Ваш ключ: ' + auction.key;
-        } else {
-          document.getElementById('winnerText').textContent = 'Победитель: ' + (auction.winner || 'никто');
+    <div class="notification" id="notification"></div>
+
+    <script>
+        let currentQRCode = null;
+        let history = [];
+        let logoImage = null;
+        let currentMode = 'url';
+        let uploadedImageUrl = '';
+        let videoStream = null;
+
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', function() {
+            loadHistory();
+            setupImageUpload();
+            setupLogoUpload();
+            setupQRImageUpload();
+        });
+
+        // Переключение вкладок
+        function switchTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(`${tab}-tab`).classList.add('active');
+            currentMode = tab;
+            
+            // Остановить камеру при переключении с вкладки сканера
+            if (tab !== 'scanner' && videoStream) {
+                stopCamera();
+            }
         }
-        document.getElementById('bidSection').style.display='none';
-        document.getElementById('countdownText').textContent='Аукцион завершён!';
-      }
-    },1000);
-  }
 
-  function endAuction(){ auction.active=false; updateUI(); }
-  function resetAuction(){ auction = { title:'', img:'', key:'', time:0, remaining:0, active:false, winner:null, bids:[] }; updateUI(); }
-</script>
+        // Настройка загрузки изображения
+        function setupImageUpload() {
+            const imageInput = document.getElementById('imageInput');
+            const imagePreview = document.getElementById('imagePreview');
+            const generatedLink = document.getElementById('generatedLink');
+            const linkText = document.getElementById('linkText');
+            
+            imageInput.addEventListener('change', function(e) {
+                if (this.files && this.files[0]) {
+                    const file = this.files[0];
+                    
+                    // Создаем временный URL для изображения
+                    const tempUrl = URL.createObjectURL(file);
+                    imagePreview.src = tempUrl;
+                    imagePreview.style.display = 'block';
+                    
+                    // Сохраняем URL для использования в QR-коде
+                    uploadedImageUrl = tempUrl;
+                    
+                    // Показываем ссылку
+                    linkText.textContent = tempUrl;
+                    generatedLink.style.display = 'block';
+                    
+                    showNotification('Изображение загружено! Создайте QR-код для ссылки на него.', 'success');
+                }
+            });
+        }
+
+        // Копирование ссылки
+        function copyLink() {
+            const linkText = document.getElementById('linkText').textContent;
+            navigator.clipboard.writeText(linkText).then(() => {
+                showNotification('Ссылка скопирована!', 'success');
+            });
+        }
+
+        // Настройка загрузки логотипа
+        function setupLogoUpload() {
+            const logoUpload = document.getElementById('logoUpload');
+            const logoFile = document.getElementById('logoFile');
+            const logoPreview = document.getElementById('logoPreview');
+            
+            logoUpload.addEventListener('click', () => logoFile.click());
+            
+            logoFile.addEventListener('change', function(e) {
+                if (this.files && this.files[0]) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        logoImage = e.target.result;
+                        logoPreview.src = logoImage;
+                        logoPreview.style.display = 'block';
+                    }
+                    reader.readAsDataURL(this.files[0]);
+                }
+            });
+        }
+
+        // Настройка загрузки изображения с QR-кодом
+        function setupQRImageUpload() {
+            const qrImageInput = document.getElementById('qrImageInput');
+            
+            qrImageInput.addEventListener('change', function(e) {
+                if (this.files && this.files[0]) {
+                    const file = this.files[0];
+                    const reader = new FileReader();
+                    
+                    reader.onload = function(e) {
+                        const img = new Image();
+                        img.onload = function() {
+                            scanQRFromImage(img);
+                        };
+                        img.src = e.target.result;
+                    };
+                    
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+
+        // Сканирование QR-кода с изображения
+        function scanQRFromImage(img) {
+            const canvas = document.getElementById('scannerCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.drawImage(img, 0, 0, img.width, img.height);
+            
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const code = jsQR(imageData.data, imageData.width, imageData.height);
+            
+            if (code) {
+                showScanResult(code.data);
+            } else {
+                showNotification('QR-код не найден на изображении', 'error');
+            }
+        }
+
+        // Запуск камеры для сканирования
+        function startCamera() {
+            const video = document.getElementById('scannerVideo');
+            const startBtn = document.getElementById('startCameraBtn');
+            
+            navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+                .then(function(stream) {
+                    videoStream = stream;
+                    video.srcObject = stream;
+                    video.style.display = 'block';
+                    startBtn.textContent = 'Камера включена';
+                    startBtn.disabled = true;
+                    
+                    // Начать сканирование
+                    scanQRFromCamera();
+                })
+                .catch(function(err) {
+                    console.error("Ошибка доступа к камере: ", err);
+                    showNotification('Не удалось получить доступ к камере', 'error');
+                });
+        }
+
+        // Остановка камеры
+        function stopCamera() {
+            if (videoStream) {
+                videoStream.getTracks().forEach(track => track.stop());
+                videoStream = null;
+            }
+            const video = document.getElementById('scannerVideo');
+            video.style.display = 'none';
+            const startBtn = document.getElementById('startCameraBtn');
+            startBtn.textContent = 'Включить камеру';
+            startBtn.disabled = false;
+        }
+
+        // Сканирование QR-кода с камеры
+        function scanQRFromCamera() {
+            if (!videoStream) return;
+            
+            const video = document.getElementById('scannerVideo');
+            const canvas = document.getElementById('scannerCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            function scanFrame() {
+                if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    const code = jsQR(imageData.data, imageData.width, imageData.height);
+                    
+                    if (code) {
+                        showScanResult(code.data);
+                        stopCamera();
+                        return;
+                    }
+                }
+                
+                requestAnimationFrame(scanFrame);
+            }
+            
+            scanFrame();
+        }
+
+        // Показ результата сканирования
+        function showScanResult(data) {
+            const scanResult = document.getElementById('scanResult');
+            const scanResultText = document.getElementById('scanResultText');
+            const openLinkBtn = document.getElementById('openLinkBtn');
+            
+            scanResultText.textContent = data;
+            scanResult.style.display = 'block';
+            
+            // Проверить, является ли результат URL
+            try {
+                new URL(data);
+                openLinkBtn.style.display = 'block';
+                openLinkBtn.onclick = function() {
+                    window.open(data, '_blank');
+                };
+            } catch (_) {
+                openLinkBtn.style.display = 'none';
+            }
+            
+            showNotification('QR-код успешно отсканирован!', 'success');
+        }
+
+        // Копирование результата сканирования
+        function copyScanResult() {
+            const scanResultText = document.getElementById('scanResultText').textContent;
+            navigator.clipboard.writeText(scanResultText).then(() => {
+                showNotification('Результат скопирован!', 'success');
+            });
+        }
+
+        // Генерация QR-кода
+        function generateQR() {
+            let content = '';
+            
+            switch(currentMode) {
+                case 'url':
+                    content = document.getElementById('urlInput').value.trim();
+                    if (!content) {
+                        showNotification('Введите URL', 'error');
+                        return;
+                    }
+                    try {
+                        new URL(content);
+                    } catch (_) {
+                        if (!content.startsWith('http://') && !content.startsWith('https://')) {
+                            content = 'https://' + content;
+                        }
+                    }
+                    break;
+                    
+                case 'text':
+                    content = document.getElementById('textInput').value.trim();
+                    if (!content) {
+                        showNotification('Введите текст', 'error');
+                        return;
+                    }
+                    break;
+                    
+                case 'image':
+                    if (!uploadedImageUrl) {
+                        showNotification('Сначала загрузите изображение', 'error');
+                        return;
+                    }
+                    content = uploadedImageUrl;
+                    break;
+                    
+                case 'scanner':
+                    showNotification('Перейдите на другую вкладку для создания QR-кода', 'error');
+                    return;
+            }
+            
+            createQRCode(content);
+        }
+
+        // Создание QR-кода с логотипом
+        function createQRCode(content) {
+            // Очистка контейнера
+            const qrcodeContainer = document.getElementById('qrcode-container');
+            const qrcodeDiv = document.getElementById('qrcode');
+            qrcodeDiv.innerHTML = '';
+            qrcodeContainer.style.display = 'block';
+            
+            // Получение настроек
+            const size = parseInt(document.getElementById('size').value) || 200;
+            const fgColor = document.getElementById('fgColor').value;
+            const bgColor = document.getElementById('bgColor').value;
+            const errorCorrection = document.getElementById('errorCorrection').value;
+            
+            // Определение уровня коррекции ошибок
+            let correctLevel;
+            switch(errorCorrection) {
+                case 'L': correctLevel = QRCode.CorrectLevel.L; break;
+                case 'M': correctLevel = QRCode.CorrectLevel.M; break;
+                case 'Q': correctLevel = QRCode.CorrectLevel.Q; break;
+                case 'H': correctLevel = QRCode.CorrectLevel.H; break;
+                default: correctLevel = QRCode.CorrectLevel.M;
+            }
+            
+            // Генерация QR-кода
+            try {
+                currentQRCode = new QRCode(qrcodeDiv, {
+                    text: content,
+                    width: size,
+                    height: size,
+                    colorDark: fgColor,
+                    colorLight: bgColor,
+                    correctLevel: correctLevel
+                });
+                
+                // Добавление логотипа, если он загружен
+                if (logoImage) {
+                    setTimeout(() => {
+                        addLogoToQR();
+                    }, 100);
+                }
+                
+                showNotification('QR-код создан!', 'success');
+                addToHistory(content);
+                
+            } catch (error) {
+                showNotification('Ошибка: ' + error.message, 'error');
+            }
+        }
+
+        // Добавление логотипа в центр QR-кода
+        function addLogoToQR() {
+            const qrcodeDiv = document.getElementById('qrcode');
+            const canvas = qrcodeDiv.querySelector('canvas');
+            
+            if (!canvas || !logoImage) return;
+            
+            const ctx = canvas.getContext('2d');
+            const logoSize = Math.min(canvas.width, canvas.height) * 0.2;
+            const x = (canvas.width - logoSize) / 2;
+            const y = (canvas.height - logoSize) / 2;
+            
+            const img = new Image();
+            img.onload = function() {
+                // Создаем белый фон для логотипа
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(x - 5, y - 5, logoSize + 10, logoSize + 10);
+                
+                // Рисуем логотип
+                ctx.drawImage(img, x, y, logoSize, logoSize);
+            };
+            img.src = logoImage;
+        }
+
+        // Скачивание QR-кода
+        function downloadQR() {
+            if (!currentQRCode) {
+                showNotification('Сначала создайте QR-код', 'error');
+                return;
+            }
+            
+            const canvas = document.querySelector('#qrcode canvas');
+            if (!canvas) {
+                showNotification('QR-код не найден', 'error');
+                return;
+            }
+            
+            const link = document.createElement('a');
+            link.download = 'qr-code.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+            
+            showNotification('QR-код скачан!', 'success');
+        }
+
+        // Копирование в буфер обмена
+        function copyToClipboard() {
+            if (!currentQRCode) {
+                showNotification('Сначала создайте QR-код', 'error');
+                return;
+            }
+            
+            const canvas = document.querySelector('#qrcode canvas');
+            if (!canvas) {
+                showNotification('QR-код не найден', 'error');
+                return;
+            }
+            
+            canvas.toBlob(function(blob) {
+                const item = new ClipboardItem({'image/png': blob});
+                navigator.clipboard.write([item]).then(function() {
+                    showNotification('QR-код скопирован!', 'success');
+                }, function() {
+                    showNotification('Ошибка копирования', 'error');
+                });
+            });
+        }
+
+        // Добавление в историю
+        function addToHistory(content) {
+            const historyItem = {
+                id: Date.now(),
+                mode: currentMode,
+                content: content,
+                timestamp: new Date().toLocaleString('ru-RU')
+            };
+            
+            history.unshift(historyItem);
+            if (history.length > 10) history = history.slice(0, 10);
+            
+            loadHistory();
+        }
+
+        // Загрузка истории
+        function loadHistory() {
+            const historyList = document.getElementById('historyList');
+            
+            if (history.length === 0) {
+                historyList.innerHTML = `
+                    <div class="empty-history">
+                        <i class="fas fa-history"></i>
+                        <p>Нет сохраненных QR-кодов</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            historyList.innerHTML = '';
+            history.forEach(item => {
+                const historyItem = document.createElement('div');
+                historyItem.className = 'history-item';
+                
+                let icon = 'fa-link';
+                let title = 'URL';
+                
+                switch(item.mode) {
+                    case 'text': 
+                        icon = 'fa-font';
+                        title = 'Текст';
+                        break;
+                    case 'image': 
+                        icon = 'fa-image';
+                        title = 'Изображение';
+                        break;
+                    case 'scanner': 
+                        icon = 'fa-camera';
+                        title = 'Сканирование';
+                        break;
+                }
+                
+                historyItem.innerHTML = `
+                    <div class="history-item-header">
+                        <i class="fas ${icon}"></i>
+                        <span>${title}</span>
+                    </div>
+                    <div class="history-item-content">${item.content.substring(0, 50)}${item.content.length > 50 ? '...' : ''}</div>
+                `;
+                historyItem.addEventListener('click', () => {
+                    loadFromHistory(item);
+                });
+                historyList.appendChild(historyItem);
+            });
+        }
+
+        // Загрузка из истории
+        function loadFromHistory(item) {
+            currentMode = item.mode;
+            
+            // Активируем нужную вкладку
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            switch(item.mode) {
+                case 'url':
+                    document.querySelector('.tab:nth-child(1)').classList.add('active');
+                    document.getElementById('url-tab').classList.add('active');
+                    document.getElementById('urlInput').value = item.content;
+                    break;
+                case 'text':
+                    document.querySelector('.tab:nth-child(2)').classList.add('active');
+                    document.getElementById('text-tab').classList.add('active');
+                    document.getElementById('textInput').value = item.content;
+                    break;
+                case 'image':
+                    document.querySelector('.tab:nth-child(3)').classList.add('active');
+                    document.getElementById('image-tab').classList.add('active');
+                    // Для изображений просто показываем уведомление
+                    showNotification('Изображение было загружено ранее', 'info');
+                    break;
+                case 'scanner':
+                    document.querySelector('.tab:nth-child(4)').classList.add('active');
+                    document.getElementById('scanner-tab').classList.add('active');
+                    showNotification('Результат сканирования загружен', 'info');
+                    break;
+            }
+            
+            closeModal();
+            showNotification('Загружено из истории', 'success');
+        }
+
+        // Показ уведомления
+        function showNotification(message, type) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = `notification ${type} show`;
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        // Открытие модального окна
+        function openModal() {
+            document.getElementById('settingsModal').style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
+
+        // Закрытие модального окна
+        function closeModal() {
+            document.getElementById('settingsModal').style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+
+        // Закрытие модального окна при клике вне его
+        window.onclick = function(event) {
+            const modal = document.getElementById('settingsModal');
+            if (event.target == modal) {
+                closeModal();
+            }
+        }
+
+        // Создание QR при нажатии Enter
+        document.getElementById('urlInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                generateQR();
+            }
+        });
+
+        // Остановка камеры при закрытии страницы
+        window.addEventListener('beforeunload', function() {
+            if (videoStream) {
+                stopCamera();
+            }
+        });
+    </script>
 </body>
 </html>
