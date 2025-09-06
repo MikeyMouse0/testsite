@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TeleQr</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -624,6 +625,21 @@
             width: 100%;
         }
 
+        .camera-permission {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            margin: 16px 0;
+            text-align: center;
+        }
+
+        .camera-permission i {
+            font-size: 48px;
+            color: var(--accent);
+            margin-bottom: 12px;
+        }
+
         @media (max-width: 480px) {
             .form-row {
                 grid-template-columns: 1fr;
@@ -642,7 +658,7 @@
 <body>
     <div class="container">
         <header>
-            <h1><i class="fas fa-qrcode"></i> QR Generator & Scanner</h1>
+            <h1><i class="fas fa-qrcode"></i> TeleQR</h1>
             <div class="menu-btn" onclick="openModal()">
                 <i class="fas fa-bars"></i>
             </div>
@@ -706,10 +722,12 @@
 
             <div class="tab-content" id="scanner-tab">
                 <div class="scanner-container">
-                    <div class="input-group">
-                        <label>Сканировать с камеры</label>
+                    <div id="cameraPermission" class="camera-permission">
+                        <i class="fas fa-camera"></i>
+                        <h3>Доступ к камере</h3>
+                        <p>Для сканирования QR-кодов необходимо разрешить доступ к камере</p>
                         <button class="btn" id="startCameraBtn" onclick="startCamera()">
-                            <i class="fas fa-camera"></i> Включить камеру
+                            <i class="fas fa-camera"></i> Разрешить доступ к камере
                         </button>
                     </div>
                     
@@ -755,7 +773,11 @@
                     <i class="fas fa-download"></i>
                     Скачать
                 </button>
-                <button class="action-btn" onclick="copyToClipboard()">
+                <button class="action-btn" onclick="shareQR()">
+                    <i class="fas fa-share"></i>
+                    Поделиться
+                </button>
+                <button class="action-btn" onclick="copyQRImage()">
                     <i class="fas fa-copy"></i>
                     Копировать
                 </button>
@@ -765,6 +787,10 @@
         <div class="card history">
             <div class="history-header">
                 <h3>История</h3>
+                <button class="action-btn" onclick="clearHistory()">
+                    <i class="fas fa-trash"></i>
+                    Очистить
+                </button>
             </div>
             <div class="history-list" id="historyList">
                 <div class="empty-history">
@@ -776,7 +802,7 @@
     </div>
 
     <footer>
-        <p>Создавайте и сканируйте QR-коды для любых целей</p>
+        <p>TeleQR - создавайте и сканируйте QR-коды прямо в Telegram</p>
     </footer>
 
     <!-- Modal for advanced settings -->
@@ -820,6 +846,9 @@
                     <input type="file" id="logoFile" accept="image/*" style="display: none;">
                 </div>
                 <img id="logoPreview" class="logo-preview" alt="Логотип">
+                <button class="btn btn-secondary" onclick="removeLogo()" style="margin-top: 10px;">
+                    <i class="fas fa-times"></i> Удалить логотип
+                </button>
             </div>
         </div>
     </div>
@@ -827,12 +856,25 @@
     <div class="notification" id="notification"></div>
 
     <script>
+        // Инициализация Telegram WebApp
+        const tg = window.Telegram?.WebApp;
+        let isTelegram = false;
+        
+        if (tg) {
+            isTelegram = true;
+            tg.expand(); // Раскрываем на весь экран
+            tg.enableClosingConfirmation(); // Подтверждение закрытия
+            document.querySelector('footer p').textContent = 'TeleQR - создавайте и сканируйте QR-коды прямо в Telegram Mini App';
+        }
+
         let currentQRCode = null;
-        let history = [];
+        let history = JSON.parse(localStorage.getItem('qrHistory')) || [];
         let logoImage = null;
         let currentMode = 'url';
         let uploadedImageUrl = '';
         let videoStream = null;
+        let isScanning = false;
+        let scanAnimationFrame = null;
 
         // Инициализация
         document.addEventListener('DOMContentLoaded', function() {
@@ -840,7 +882,29 @@
             setupImageUpload();
             setupLogoUpload();
             setupQRImageUpload();
+            checkCameraSupport();
+            
+            // В Telegram Mini App сразу запрашиваем разрешение на камеру
+            if (isTelegram) {
+                setTimeout(() => {
+                    if (currentMode === 'scanner') {
+                        startCamera();
+                    }
+                }, 1000);
+            }
         });
+
+        // Проверка поддержки камеры
+        function checkCameraSupport() {
+            const hasCamera = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+            const cameraBtn = document.getElementById('startCameraBtn');
+            
+            if (!hasCamera) {
+                cameraBtn.disabled = true;
+                cameraBtn.innerHTML = '<i class="fas fa-ban"></i> Камера не поддерживается';
+                showNotification('Ваше устройство не поддерживает камеру', 'warning');
+            }
+        }
 
         // Переключение вкладок
         function switchTab(tab) {
@@ -852,9 +916,119 @@
             currentMode = tab;
             
             // Остановить камеру при переключении с вкладки сканера
-            if (tab !== 'scanner' && videoStream) {
+            if (tab !== 'scanner') {
                 stopCamera();
+            } else if (isTelegram) {
+                // В Telegram автоматически запускаем камеру при переходе на вкладку сканера
+                setTimeout(() => startCamera(), 500);
             }
+        }
+
+        // Запуск камеры с проверкой разрешений
+        async function startCamera() {
+            const video = document.getElementById('scannerVideo');
+            const startBtn = document.getElementById('startCameraBtn');
+            const cameraPermission = document.getElementById('cameraPermission');
+            
+            // Скрываем блок с запросом разрешения
+            cameraPermission.style.display = 'none';
+            
+            try {
+                // В Telegram Mini App используем встроенный API для запроса разрешений
+                if (isTelegram && tg.requestCameraPermission) {
+                    const granted = await tg.requestCameraPermission();
+                    if (!granted) {
+                        showNotification('Доступ к камере запрещен', 'error');
+                        cameraPermission.style.display = 'block';
+                        return;
+                    }
+                }
+                
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        facingMode: "environment",
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    },
+                    audio: false 
+                });
+                
+                videoStream = stream;
+                video.srcObject = stream;
+                video.style.display = 'block';
+                startBtn.innerHTML = '<i class="fas fa-camera"></i> Камера включена';
+                startBtn.disabled = true;
+                
+                // Ждем загрузки видео
+                video.onloadedmetadata = function() {
+                    // Начать сканирование
+                    scanQRFromCamera();
+                };
+                
+            } catch (error) {
+                console.error("Ошибка доступа к камере: ", error);
+                showNotification('Не удалось получить доступ к камере: ' + error.message, 'error');
+                cameraPermission.style.display = 'block';
+                startBtn.disabled = false;
+                startBtn.innerHTML = '<i class="fas fa-camera"></i> Попробовать снова';
+            }
+        }
+
+        // Остановка камеры
+        function stopCamera() {
+            if (scanAnimationFrame) {
+                cancelAnimationFrame(scanAnimationFrame);
+                scanAnimationFrame = null;
+            }
+            
+            if (videoStream) {
+                videoStream.getTracks().forEach(track => track.stop());
+                videoStream = null;
+            }
+            
+            const video = document.getElementById('scannerVideo');
+            video.style.display = 'none';
+            
+            const startBtn = document.getElementById('startCameraBtn');
+            startBtn.innerHTML = '<i class="fas fa-camera"></i> Включить камеру';
+            startBtn.disabled = false;
+            
+            const cameraPermission = document.getElementById('cameraPermission');
+            cameraPermission.style.display = 'block';
+        }
+
+        // Сканирование QR-кода с камеры
+        function scanQRFromCamera() {
+            if (!videoStream || isScanning) return;
+            
+            isScanning = true;
+            const video = document.getElementById('scannerVideo');
+            const canvas = document.getElementById('scannerCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            function scanFrame() {
+                if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    const code = jsQR(imageData.data, imageData.width, imageData.height);
+                    
+                    if (code) {
+                        showScanResult(code.data);
+                        stopCamera();
+                        isScanning = false;
+                        return;
+                    }
+                }
+                
+                if (isScanning) {
+                    scanAnimationFrame = requestAnimationFrame(scanFrame);
+                }
+            }
+            
+            scanFrame();
         }
 
         // Настройка загрузки изображения
@@ -867,6 +1041,12 @@
             imageInput.addEventListener('change', function(e) {
                 if (this.files && this.files[0]) {
                     const file = this.files[0];
+                    
+                    // Проверяем размер файла (максимум 5MB)
+                    if (file.size > 5 * 1024 * 1024) {
+                        showNotification('Файл слишком большой. Максимальный размер: 5MB', 'error');
+                        return;
+                    }
                     
                     // Создаем временный URL для изображения
                     const tempUrl = URL.createObjectURL(file);
@@ -885,14 +1065,6 @@
             });
         }
 
-        // Копирование ссылки
-        function copyLink() {
-            const linkText = document.getElementById('linkText').textContent;
-            navigator.clipboard.writeText(linkText).then(() => {
-                showNotification('Ссылка скопирована!', 'success');
-            });
-        }
-
         // Настройка загрузки логотипа
         function setupLogoUpload() {
             const logoUpload = document.getElementById('logoUpload');
@@ -903,15 +1075,57 @@
             
             logoFile.addEventListener('change', function(e) {
                 if (this.files && this.files[0]) {
+                    const file = this.files[0];
+                    
+                    // Проверяем размер файла (максимум 2MB)
+                    if (file.size > 2 * 1024 * 1024) {
+                        showNotification('Логотип слишком большой. Максимальный размер: 2MB', 'error');
+                        return;
+                    }
+                    
                     const reader = new FileReader();
                     reader.onload = function(e) {
                         logoImage = e.target.result;
                         logoPreview.src = logoImage;
                         logoPreview.style.display = 'block';
+                        showNotification('Логотип добавлен!', 'success');
                     }
                     reader.readAsDataURL(this.files[0]);
                 }
             });
+            
+            // Drag and drop для логотипа
+            logoUpload.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                this.style.borderColor = 'var(--accent)';
+                this.style.background = 'rgba(29, 155, 240, 0.2)';
+            });
+            
+            logoUpload.addEventListener('dragleave', function(e) {
+                e.preventDefault();
+                this.style.borderColor = 'var(--border)';
+                this.style.background = 'transparent';
+            });
+            
+            logoUpload.addEventListener('drop', function(e) {
+                e.preventDefault();
+                this.style.borderColor = 'var(--border)';
+                this.style.background = 'transparent';
+                
+                if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                    logoFile.files = e.dataTransfer.files;
+                    const event = new Event('change');
+                    logoFile.dispatchEvent(event);
+                }
+            });
+        }
+
+        // Удаление логотипа
+        function removeLogo() {
+            logoImage = null;
+            const logoPreview = document.getElementById('logoPreview');
+            logoPreview.style.display = 'none';
+            showNotification('Логотип удален', 'success');
         }
 
         // Настройка загрузки изображения с QR-кодом
@@ -955,71 +1169,6 @@
             }
         }
 
-        // Запуск камеры для сканирования
-        function startCamera() {
-            const video = document.getElementById('scannerVideo');
-            const startBtn = document.getElementById('startCameraBtn');
-            
-            navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-                .then(function(stream) {
-                    videoStream = stream;
-                    video.srcObject = stream;
-                    video.style.display = 'block';
-                    startBtn.textContent = 'Камера включена';
-                    startBtn.disabled = true;
-                    
-                    // Начать сканирование
-                    scanQRFromCamera();
-                })
-                .catch(function(err) {
-                    console.error("Ошибка доступа к камере: ", err);
-                    showNotification('Не удалось получить доступ к камере', 'error');
-                });
-        }
-
-        // Остановка камеры
-        function stopCamera() {
-            if (videoStream) {
-                videoStream.getTracks().forEach(track => track.stop());
-                videoStream = null;
-            }
-            const video = document.getElementById('scannerVideo');
-            video.style.display = 'none';
-            const startBtn = document.getElementById('startCameraBtn');
-            startBtn.textContent = 'Включить камеру';
-            startBtn.disabled = false;
-        }
-
-        // Сканирование QR-кода с камеры
-        function scanQRFromCamera() {
-            if (!videoStream) return;
-            
-            const video = document.getElementById('scannerVideo');
-            const canvas = document.getElementById('scannerCanvas');
-            const ctx = canvas.getContext('2d');
-            
-            function scanFrame() {
-                if (video.readyState === video.HAVE_ENOUGH_DATA) {
-                    canvas.width = video.videoWidth;
-                    canvas.height = video.videoHeight;
-                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                    
-                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                    const code = jsQR(imageData.data, imageData.width, imageData.height);
-                    
-                    if (code) {
-                        showScanResult(code.data);
-                        stopCamera();
-                        return;
-                    }
-                }
-                
-                requestAnimationFrame(scanFrame);
-            }
-            
-            scanFrame();
-        }
-
         // Показ результата сканирования
         function showScanResult(data) {
             const scanResult = document.getElementById('scanResult');
@@ -1034,21 +1183,67 @@
                 new URL(data);
                 openLinkBtn.style.display = 'block';
                 openLinkBtn.onclick = function() {
-                    window.open(data, '_blank');
+                    if (isTelegram && tg.openLink) {
+                        tg.openLink(data);
+                    } else {
+                        window.open(data, '_blank');
+                    }
                 };
             } catch (_) {
                 openLinkBtn.style.display = 'none';
             }
             
             showNotification('QR-код успешно отсканирован!', 'success');
+            addToHistory(data, 'scanner');
+        }
+
+        // Копирование ссылки
+        function copyLink() {
+            const linkText = document.getElementById('linkText').textContent;
+            copyToClipboard(linkText, 'Ссылка скопирована!');
         }
 
         // Копирование результата сканирования
         function copyScanResult() {
             const scanResultText = document.getElementById('scanResultText').textContent;
-            navigator.clipboard.writeText(scanResultText).then(() => {
-                showNotification('Результат скопирован!', 'success');
-            });
+            copyToClipboard(scanResultText, 'Результат скопирован!');
+        }
+
+        // Универсальная функция копирования в буфер обмена
+        function copyToClipboard(text, successMessage) {
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text).then(() => {
+                    showNotification(successMessage, 'success');
+                }).catch(err => {
+                    fallbackCopyToClipboard(text, successMessage);
+                });
+            } else {
+                fallbackCopyToClipboard(text, successMessage);
+            }
+        }
+
+        // Fallback для копирования в буфер обмена
+        function fallbackCopyToClipboard(text, successMessage) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed";
+            textArea.style.opacity = 0;
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    showNotification(successMessage, 'success');
+                } else {
+                    showNotification('Не удалось скопировать', 'error');
+                }
+            } catch (err) {
+                showNotification('Ошибка копирования: ' + err, 'error');
+            }
+            
+            document.body.removeChild(textArea);
         }
 
         // Генерация QR-кода
@@ -1138,10 +1333,10 @@
                 }
                 
                 showNotification('QR-код создан!', 'success');
-                addToHistory(content);
+                addToHistory(content, currentMode);
                 
             } catch (error) {
-                showNotification('Ошибка: ' + error.message, 'error');
+                showNotification('Ошибка создания QR-кода: ' + error.message, 'error');
             }
         }
 
@@ -1182,6 +1377,21 @@
                 return;
             }
             
+            // В Telegram Mini App используем специальный метод для скачивания
+            if (isTelegram && tg.downloadFile) {
+                canvas.toBlob(function(blob) {
+                    const reader = new FileReader();
+                    reader.onload = function() {
+                        const base64data = reader.result.split(',')[1];
+                        tg.downloadFile(base64data, 'qr-code.png', 'image/png');
+                    };
+                    reader.readAsDataURL(blob);
+                });
+                showNotification('QR-код скачивается...', 'success');
+                return;
+            }
+            
+            // Стандартный метод для браузеров
             const link = document.createElement('a');
             link.download = 'qr-code.png';
             link.href = canvas.toDataURL('image/png');
@@ -1190,8 +1400,8 @@
             showNotification('QR-код скачан!', 'success');
         }
 
-        // Копирование в буфер обмена
-        function copyToClipboard() {
+        // Поделиться QR-кодом
+        function shareQR() {
             if (!currentQRCode) {
                 showNotification('Сначала создайте QR-код', 'error');
                 return;
@@ -1204,20 +1414,66 @@
             }
             
             canvas.toBlob(function(blob) {
-                const item = new ClipboardItem({'image/png': blob});
-                navigator.clipboard.write([item]).then(function() {
-                    showNotification('QR-код скопирован!', 'success');
-                }, function() {
-                    showNotification('Ошибка копирования', 'error');
-                });
+                if (navigator.share) {
+                    // Web Share API
+                    const file = new File([blob], 'qr-code.png', { type: 'image/png' });
+                    navigator.share({
+                        files: [file],
+                        title: 'Мой QR-код',
+                        text: 'Посмотрите созданный мной QR-код'
+                    }).then(() => {
+                        showNotification('QR-код успешно отправлен!', 'success');
+                    }).catch(error => {
+                        showNotification('Ошибка отправки: ' + error.message, 'error');
+                    });
+                } else if (isTelegram && tg.shareFile) {
+                    // Telegram Mini App API
+                    const reader = new FileReader();
+                    reader.onload = function() {
+                        const base64data = reader.result.split(',')[1];
+                        tg.shareFile(base64data, 'qr-code.png', 'image/png', 'Мой QR-код');
+                    };
+                    reader.readAsDataURL(blob);
+                } else {
+                    // Fallback - скачивание
+                    downloadQR();
+                }
             });
         }
 
+        // Копирование QR-кода как изображение
+        function copyQRImage() {
+            if (!currentQRCode) {
+                showNotification('Сначала создайте QR-код', 'error');
+                return;
+            }
+            
+            const canvas = document.querySelector('#qrcode canvas');
+            if (!canvas) {
+                showNotification('QR-код не найден', 'error');
+                return;
+            }
+            
+            // Проверяем поддержку Clipboard API
+            if (navigator.clipboard && window.ClipboardItem) {
+                canvas.toBlob(function(blob) {
+                    const item = new ClipboardItem({ 'image/png': blob });
+                    navigator.clipboard.write([item]).then(function() {
+                        showNotification('QR-код скопирован в буфер обмена!', 'success');
+                    }).catch(function(error) {
+                        showNotification('Ошибка копирования: ' + error.message, 'error');
+                    });
+                });
+            } else {
+                showNotification('Копирование изображений не поддерживается в вашем браузере', 'error');
+            }
+        }
+
         // Добавление в историю
-        function addToHistory(content) {
+        function addToHistory(content, mode) {
             const historyItem = {
                 id: Date.now(),
-                mode: currentMode,
+                mode: mode,
                 content: content,
                 timestamp: new Date().toLocaleString('ru-RU')
             };
@@ -1225,7 +1481,20 @@
             history.unshift(historyItem);
             if (history.length > 10) history = history.slice(0, 10);
             
+            // Сохраняем в localStorage
+            localStorage.setItem('qrHistory', JSON.stringify(history));
+            
             loadHistory();
+        }
+
+        // Очистка истории
+        function clearHistory() {
+            if (confirm('Вы уверены, что хотите очистить историю?')) {
+                history = [];
+                localStorage.removeItem('qrHistory');
+                loadHistory();
+                showNotification('История очищена', 'success');
+            }
         }
 
         // Загрузка истории
@@ -1269,6 +1538,7 @@
                     <div class="history-item-header">
                         <i class="fas ${icon}"></i>
                         <span>${title}</span>
+                        <small style="margin-left: auto; color: var(--text-secondary);">${item.timestamp}</small>
                     </div>
                     <div class="history-item-content">${item.content.substring(0, 50)}${item.content.length > 50 ? '...' : ''}</div>
                 `;
@@ -1302,12 +1572,12 @@
                     document.querySelector('.tab:nth-child(3)').classList.add('active');
                     document.getElementById('image-tab').classList.add('active');
                     // Для изображений просто показываем уведомление
-                    showNotification('Изображение было загружено ранее', 'info');
+                    showNotification('Изображение было загружено ранее. Загрузите новое изображение.', 'info');
                     break;
                 case 'scanner':
                     document.querySelector('.tab:nth-child(4)').classList.add('active');
                     document.getElementById('scanner-tab').classList.add('active');
-                    showNotification('Результат сканирования загружен', 'info');
+                    showScanResult(item.content);
                     break;
             }
             
@@ -1353,12 +1623,28 @@
             }
         });
 
+        document.getElementById('textInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && e.ctrlKey) {
+                generateQR();
+            }
+        });
+
         // Остановка камеры при закрытии страницы
         window.addEventListener('beforeunload', function() {
+            stopCamera();
+        });
+
+        // Обработка изменения ориентации устройства
+        window.addEventListener('orientationchange', function() {
             if (videoStream) {
-                stopCamera();
+                setTimeout(() => {
+                    stopCamera();
+                    if (currentMode === 'scanner') {
+                        startCamera();
+                    }
+                }, 300);
             }
         });
     </script>
 </body>
-</html>
+    </html>
